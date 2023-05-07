@@ -1,6 +1,9 @@
 import { PostDatabase } from "../database/PostDatabase";
 import { CreatePostInputDTO, CreatePostOutputDTO } from "../dtos/post/createPost.dto";
+import { EditPostInputDTO, EditPostOutputDTO } from "../dtos/post/editPost.dto";
 import { GetPostsInputDTO, GetPostsOutputDTO } from "../dtos/post/getPosts.dto";
+import { ForbiddenError } from "../errors/ForbiddenError";
+import { NotFoundError } from "../errors/NotFoundError";
 import { UnauthorizedError } from "../errors/UnauthorizedError";
 import { Post } from "../models/Post";
 import { IdGenerator } from "../services/IdGenerator";
@@ -67,6 +70,45 @@ export class PostBusiness {
         })
 
         const output: GetPostsOutputDTO = posts
+        return output
+    }
+
+    public editPost = async (input: EditPostInputDTO): Promise<EditPostOutputDTO> => {
+        const { content, token, idToEdit } = input
+
+        const payload = this.tokenManager.getPayload(token)
+        if (!payload) {
+            throw new UnauthorizedError()
+        }
+
+        const postDB = await this.postDatabase.findPostById(idToEdit)
+
+        if (!postDB) {
+            throw new NotFoundError("post com essa id não existe")
+        }
+
+        if (payload.id !== postDB.creator_id) {
+            throw new ForbiddenError("somente quem criou o post pode editá-lo")
+        }
+
+        const post = new Post(
+            postDB.id,
+            postDB.content,
+            postDB.likes,
+            postDB.dislikes,
+            postDB.created_at,
+            postDB.updated_at,
+            postDB.creator_id,
+            payload.name
+        )
+
+        post.setContent(content)
+        post.setUpdatedAt(new Date().toISOString())
+
+        const updatedPostDB = post.toDBModel()
+        await this.postDatabase.updatePost(updatedPostDB)
+
+        const output: EditPostOutputDTO = undefined
         return output
     }
 }
