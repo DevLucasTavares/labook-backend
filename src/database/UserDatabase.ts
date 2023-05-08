@@ -14,10 +14,10 @@ export class UserDatabase extends BaseDatabase {
     public findUserByEmail = async (email: string): Promise<UserDB | undefined> => {
         const [ userDB ]: Array<UserDB | undefined> = await BaseDatabase
         .connection(UserDatabase.TABLE_USERS)
-        .select() // Select sempre retorna array
+        .select()
         .where({ email })
 
-        return userDB // as UserDB | undefined
+        return userDB
     }
 
 }
